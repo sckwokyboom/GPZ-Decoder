@@ -1,30 +1,33 @@
-package model
+package polynomials
 
-import BinaryPolynomial
-import GaloisField
+import model.field.GaloisFieldMod2
 
 
 class BinaryPolynomialMatrix {
     var cols: Int
     val rows: Int
     private var data: Array<Array<BinaryPolynomial>>
+    private val gf: GaloisFieldMod2
 
-    constructor(rows: Int, cols: Int) : this(
-        Array(rows) { Array(cols) { BinaryPolynomial(emptyList()) } }
+    constructor(rows: Int, cols: Int, gf: GaloisFieldMod2) : this(
+        Array(rows) { Array(cols) { BinaryPolynomial(emptyList()) } },
+        gf
     )
 
-    constructor(vector: Array<BinaryPolynomial>) {
+    constructor(vector: Array<BinaryPolynomial>, gf: GaloisFieldMod2) {
         this.rows = 1
         this.cols = vector.size
         require(rows > 0 && cols > 0) { "Количество строк и столбцов должно быть положительным целым числом." }
         this.data = arrayOf(vector)
+        this.gf = gf
     }
 
-    constructor(data: Array<Array<BinaryPolynomial>>) {
+    constructor(data: Array<Array<BinaryPolynomial>>, gf: GaloisFieldMod2) {
         this.rows = data.size
         this.cols = data[0].size
         require(rows > 0 && cols > 0) { "Количество строк и столбцов должно быть положительным целым числом." }
         this.data = data
+        this.gf = gf
     }
 
     fun gaussianElimination(): BinaryPolynomialMatrix {
@@ -33,7 +36,7 @@ class BinaryPolynomialMatrix {
         for (r in 0 until A.rows) {
             if (A.cols <= lead) break
             var i = r
-            while (A.data[i][lead].castToFieldElements(GaloisField).isZero()) {
+            while (A.data[i][lead].castToFieldElements(gf).isZero()) {
                 i++
                 if (A.rows == i) {
                     i = r
@@ -41,7 +44,7 @@ class BinaryPolynomialMatrix {
                     if (A.cols == lead) {
                         for (u in 0 until A.rows) {
                             for (j in 0 until A.cols) {
-                                A.data[u][j] = A.data[u][j].castToFieldElements(GaloisField)
+                                A.data[u][j] = A.data[u][j].castToFieldElements(gf)
                             }
                         }
                         return A
@@ -57,7 +60,7 @@ class BinaryPolynomialMatrix {
             if (leaderElement.isZero()) {
                 throw RuntimeException("Лидер оказался равным нулю.")
             }
-            val inv = GaloisField[leaderElement]
+            val inv = gf[leaderElement]
             for (j in 0 until A.cols) {
                 A.data[r][j] = (A.data[r][j] * inv)
             }
@@ -75,7 +78,7 @@ class BinaryPolynomialMatrix {
 
         for (i in 0 until A.rows) {
             for (j in 0 until A.cols) {
-                A.data[i][j] = A.data[i][j].castToFieldElements(GaloisField)
+                A.data[i][j] = A.data[i][j].castToFieldElements(gf)
             }
         }
         return A
@@ -94,7 +97,6 @@ class BinaryPolynomialMatrix {
             }
             solutions[i] = (A[i, cols - 1] - sum)
         }
-        solutions.addFirst(BinaryPolynomial(intArrayOf(1)))
         return solutions
     }
 
@@ -121,7 +123,7 @@ class BinaryPolynomialMatrix {
     fun subMatrix(startRow: Int, endRow: Int, startCol: Int, endCol: Int): BinaryPolynomialMatrix {
         val subRows = endRow - startRow
         val subCols = endCol - startCol
-        val result = BinaryPolynomialMatrix(subRows, subCols)
+        val result = BinaryPolynomialMatrix(subRows, subCols, gf)
         for (i in 0 until subRows) {
             for (j in 0 until subCols) {
                 result[i, j] = this[startRow + i, startCol + j]
@@ -149,7 +151,7 @@ class BinaryPolynomialMatrix {
     }
 
     private fun minor(row: Int, col: Int): BinaryPolynomialMatrix {
-        val result = BinaryPolynomialMatrix(rows - 1, cols - 1)
+        val result = BinaryPolynomialMatrix(rows - 1, cols - 1, gf)
         for (i in 0 until rows) {
             for (j in 0 until cols) {
                 if (i == row || j == col) continue
@@ -208,7 +210,7 @@ class BinaryPolynomialMatrix {
      * Создает и возвращает глубокую копию этой матрицы.
      */
     fun copy(): BinaryPolynomialMatrix {
-        val newMatrix = BinaryPolynomialMatrix(rows, cols)
+        val newMatrix = BinaryPolynomialMatrix(rows, cols, gf)
         for (i in 0 until rows) {
             for (j in 0 until cols) {
                 newMatrix[i, j] = this[i, j]
@@ -244,7 +246,7 @@ class BinaryPolynomialMatrix {
     }
 
     private fun plus(left: BinaryPolynomialMatrix, right: BinaryPolynomialMatrix): BinaryPolynomialMatrix {
-        val result = BinaryPolynomialMatrix(rows, cols)
+        val result = BinaryPolynomialMatrix(rows, cols, gf)
         if (left.rows != right.rows || left.cols != right.cols) {
             throw IllegalArgumentException("размеры матриц должны совпадать для операции сложения")
         }
@@ -258,7 +260,7 @@ class BinaryPolynomialMatrix {
     }
 
     fun transpose(): BinaryPolynomialMatrix {
-        val result = BinaryPolynomialMatrix(cols, rows)
+        val result = BinaryPolynomialMatrix(cols, rows, gf)
         for (i in 0 until rows) {
             for (j in 0 until cols) {
                 result[j, i] = this[i, j]
@@ -284,7 +286,7 @@ class BinaryPolynomialMatrix {
         val n = rows
         val p = other.cols
         val m = cols
-        val result = BinaryPolynomialMatrix(n, p)
+        val result = BinaryPolynomialMatrix(n, p, gf)
         for (i in 0 until n) {
             for (j in 0 until p) {
                 var sum = BinaryPolynomial(emptyList())

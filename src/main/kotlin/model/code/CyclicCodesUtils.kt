@@ -1,6 +1,7 @@
-package model
+package model.code
 
 import model.binarycanonicalconverter.BinaryMatrix
+import polynomials.MultiBinaryPolynomial
 import java.security.InvalidParameterException
 
 class CyclicCodesUtils {

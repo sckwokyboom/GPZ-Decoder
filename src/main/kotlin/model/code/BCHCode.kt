@@ -1,77 +1,63 @@
 package model.code
 
-import BinaryPolynomial
-import GaloisField
-import model.BinaryVector
-import model.CyclicCodesUtils
-import model.CyclotomicClassesFinder
-import model.MultiBinaryPolynomial
+import polynomials.BinaryPolynomial
+import model.field.GaloisFieldMod2
+import model.*
 import model.binarycanonicalconverter.BinaryCanonicalConverter
 import model.binarycanonicalconverter.BinaryMatrix
+import model.cyclotomicclasses.CyclotomicClass
+import model.cyclotomicclasses.CyclotomicClassesFinder
+import polynomials.MultiBinaryPolynomial
 import java.util.*
 import kotlin.math.pow
 
 class BCHCode(
     val length: Int,
+    val b: Int,
+    val delta: Int,
+    private val irreduciblePolynomial: BinaryPolynomial,
+    private val primitiveElement: BinaryPolynomial,
 ) {
     val parityCheckLength: Int
     val dimension: Int
     val generatorMatrix: BinaryMatrix
     val parityCheckMatrix: BinaryMatrix
+    val gf = GaloisFieldMod2(irreduciblePolynomial, primitiveElement, length)
 
-    private val generativePolynomial: MultiBinaryPolynomial
+    private var generativePolynomial: MultiBinaryPolynomial = MultiBinaryPolynomial(listOf(BinaryPolynomial.ONE))
 
     init {
-        val cyclotomicClasses = CyclotomicClassesFinder.findAllCyclotomicClasses(511, 2)
-        val cyclotomicClass1 = cyclotomicClasses.getValue(1)
-        val cyclotomicClass3 = cyclotomicClasses.getValue(3)
-        val cyclotomicClass5 = cyclotomicClasses.getValue(5)
-        var minPolynomial1 = MultiBinaryPolynomial(
-            listOf(BinaryPolynomial(intArrayOf(1)))
-        )
-        for (representative in cyclotomicClass1.representatives) {
-            minPolynomial1 *=
-                MultiBinaryPolynomial(
-                    listOf(
-                        BinaryPolynomial(intArrayOf(0, 1)).pow(representative),
-                        BinaryPolynomial(intArrayOf(1))
-                    )
-                )
+        val allCyclotomicClasses = CyclotomicClassesFinder.findAllCyclotomicClasses(length, 2)
+        val uniqueCyclotomicClasses = ArrayList<CyclotomicClass>()
+        for (entry in allCyclotomicClasses) {
+            if (b <= entry.key && entry.key <= b + delta - 2) {
+                if (!uniqueCyclotomicClasses.contains(entry.value)) {
+                    uniqueCyclotomicClasses.add(entry.value)
+                }
+            }
         }
-        var minPolynomial3 = MultiBinaryPolynomial(
-            listOf(BinaryPolynomial(intArrayOf(1)))
-        )
-        for (representative in cyclotomicClass3.representatives) {
-            minPolynomial3 *=
-                MultiBinaryPolynomial(
-                    listOf(
-                        BinaryPolynomial(intArrayOf(0, 1)).pow(representative),
-                        BinaryPolynomial(intArrayOf(1))
+        val minPolynomials = ArrayList<MultiBinaryPolynomial>()
+        for (cyclotomicClass in uniqueCyclotomicClasses) {
+            var minPolynomial = MultiBinaryPolynomial(
+                listOf(BinaryPolynomial(intArrayOf(1)))
+            )
+            for (representative in cyclotomicClass.representatives) {
+                minPolynomial *=
+                    MultiBinaryPolynomial(
+                        listOf(
+                            BinaryPolynomial(intArrayOf(0, 1)).pow(representative),
+                            BinaryPolynomial(intArrayOf(1))
+                        )
                     )
-                )
+            }
+            minPolynomials.add(minPolynomial.castCoefficientsToFieldElements(gf))
         }
-        var minPolynomial5 = MultiBinaryPolynomial(
-            listOf(BinaryPolynomial(intArrayOf(1)))
-        )
-        for (representative in cyclotomicClass5.representatives) {
-            minPolynomial5 *=
-                MultiBinaryPolynomial(
-                    listOf(
-                        BinaryPolynomial(intArrayOf(0, 1)).pow(representative),
-                        BinaryPolynomial(intArrayOf(1))
-                    )
-                )
+
+        for (minPolynomial in minPolynomials) {
+            generativePolynomial *= minPolynomial
         }
-        val gf = GaloisField
-        val minPolyInField1 = minPolynomial1.castCoefficientsToFieldElements(gf)
-        val minPolyInField3 = minPolynomial3.castCoefficientsToFieldElements(gf)
-        val minPolyInField5 = minPolynomial5.castCoefficientsToFieldElements(gf)
-        generativePolynomial =
-            minPolyInField1 *
-                    minPolyInField3 *
-                    minPolyInField5
-        println(generativePolynomial.castCoefficientsToFieldElements(gf))
-        generatorMatrix = CyclicCodesUtils.getGeneratorMatrixFromGeneratorPolynomial(generativePolynomial, 511)
+        generativePolynomial = generativePolynomial.castCoefficientsToFieldElements(gf)
+        generatorMatrix = CyclicCodesUtils.getGeneratorMatrixFromGeneratorPolynomial(generativePolynomial, length)
         parityCheckMatrix = BinaryCanonicalConverter().toParityCheck(generatorMatrix)
         parityCheckLength = parityCheckMatrix.rows
         dimension = generatorMatrix.rows

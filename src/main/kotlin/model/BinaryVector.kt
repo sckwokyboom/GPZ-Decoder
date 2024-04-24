@@ -19,6 +19,9 @@ class BinaryVector(private val size: Int) : BitSet() {
     constructor(value: Int, codeLength: Int) : this(BigInteger.valueOf(value.toLong()), codeLength)
     constructor(value: Long, codeLength: Int) : this(BigInteger.valueOf(value), codeLength)
 
+    /**
+     * Представляет value в двоичном виде, а затем дополняет справа нулями до размера codeLength.
+     */
     constructor(value: BigInteger, codeLength: Int) : this(codeLength) {
         for (j in 0 until codeLength + 1) {
             if ((value and (BigInteger.ONE.shl(j))) != BigInteger.ZERO) {
@@ -51,6 +54,17 @@ class BinaryVector(private val size: Int) : BitSet() {
         return arr.toBooleanArray()
     }
 
+    fun toBigInteger(): BigInteger {
+        var result = BigInteger.ZERO
+        for (bit in this.toBooleanArray().reversed()) {
+            result = result shl 1
+            if (bit) {
+                result = result or BigInteger.ONE
+            }
+        }
+        return result
+    }
+
 
     override fun length(): Int {
         return size
@@ -71,5 +85,4 @@ class BinaryVector(private val size: Int) : BitSet() {
         tmp.xor(other)
         return tmp
     }
-
 }

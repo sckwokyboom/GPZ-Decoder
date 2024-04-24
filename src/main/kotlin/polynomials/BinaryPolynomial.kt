@@ -1,8 +1,13 @@
+package polynomials
+
 import model.BinaryVector
+import model.field.GaloisFieldMod2
+import java.math.BigInteger
 import kotlin.math.abs
 import kotlin.math.max
 
 open class BinaryPolynomial {
+
     val coefficients: List<Boolean>
         get() {
             return field
@@ -20,6 +25,10 @@ open class BinaryPolynomial {
     constructor(vector: BinaryVector) : this(vector.toBooleanArray())
 
     companion object {
+        val ZERO: BinaryPolynomial = BinaryPolynomial(emptyList())
+        val ONE: BinaryPolynomial = BinaryPolynomial(intArrayOf(1))
+        val X: BinaryPolynomial = BinaryPolynomial(intArrayOf(0, 1))
+
         private fun trimZeros(coefficients: List<Boolean>): List<Boolean> {
             if (!coefficients.contains(true)) {
                 return emptyList()
@@ -81,6 +90,9 @@ open class BinaryPolynomial {
     }
 
     operator fun div(other: BinaryPolynomial): ResultOfDivision {
+        if (other.isZero()) {
+            throw IllegalArgumentException("Деление на 0 невозможно.")
+        }
         if (this.degree < other.degree) {
             return ResultOfDivision(BinaryPolynomial(emptyList()), this)
         }
@@ -89,7 +101,9 @@ open class BinaryPolynomial {
         }
 
         var dividend = BinaryPolynomial(this.coefficients)
-        var quotient = BinaryPolynomial(emptyList<Boolean>())
+        var quotient = BinaryPolynomial(emptyList())
+
+        // TODO: think about degree = 0
         while (dividend.degree >= other.degree) {
             val termCoefficients = MutableList(abs(dividend.degree - other.degree)) { false }
             termCoefficients.addLast(true)
@@ -117,7 +131,12 @@ open class BinaryPolynomial {
     }
 
     val degree: Int
-        get() = coefficients.size - 1
+        get() {
+            if (coefficients.isEmpty()) {
+                return 0
+            }
+            return coefficients.size - 1
+        }
 
     fun isZero(): Boolean {
         return coefficients.isEmpty()
@@ -152,7 +171,7 @@ open class BinaryPolynomial {
 
 
     // TODO: bad semantic
-    fun castToFieldElements(field: GaloisField): BinaryPolynomial {
+    fun castToFieldElements(field: GaloisFieldMod2): BinaryPolynomial {
         var newCoefficientsTakenModulo = coefficients.toMutableList()
         for (i in newCoefficientsTakenModulo.indices.reversed()) {
             val newIndex = i % (field.fieldSize)
@@ -173,6 +192,19 @@ open class BinaryPolynomial {
         return polynomialInField
     }
 
+    fun isIrreducible(): Boolean {
+        var i = BigInteger.TWO
+        val limit = BinaryVector(BigInteger.TWO.pow(degree + 1), degree + 2).toBigInteger()
+        while (i < limit) {
+            val div = BinaryPolynomial(BinaryVector(i, degree + 1).toBooleanArray())
+            if (this % div == ZERO && this != div) {
+                return false
+            }
+            i++
+        }
+        return true
+    }
+
     fun substituteArgument(newArgument: BinaryPolynomial): BinaryPolynomial {
         var newPolynomial = BinaryPolynomial(booleanArrayOf(coefficients[0]))
         for (i in 1 until coefficients.size) {
@@ -182,6 +214,10 @@ open class BinaryPolynomial {
             }
         }
         return newPolynomial
+    }
+
+    fun toBinaryVector(): BinaryVector {
+        return BinaryVector(coefficients.toTypedArray())
     }
 
     override fun equals(other: Any?): Boolean {

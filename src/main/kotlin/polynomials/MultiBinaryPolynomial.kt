@@ -1,7 +1,6 @@
-package model
+package polynomials
 
-import BinaryPolynomial
-import GaloisField
+import model.field.GaloisFieldMod2
 import kotlin.math.abs
 import kotlin.math.max
 
@@ -132,7 +131,7 @@ class MultiBinaryPolynomial(
         return builder.toString()
     }
 
-    fun castCoefficientsToFieldElements(field: GaloisField): MultiBinaryPolynomial {
+    fun castCoefficientsToFieldElements(field: GaloisFieldMod2): MultiBinaryPolynomial {
         val newCoefficients = ArrayList<BinaryPolynomial>()
         for (coefficientsPolynomial in coefficients) {
             newCoefficients.add(coefficientsPolynomial.castToFieldElements(field))
@@ -155,6 +154,22 @@ class MultiBinaryPolynomial(
                     polynomialCoefficients.add(BinaryPolynomial(emptyList()))
                 }
                 newPolynomial += MultiBinaryPolynomial(polynomialCoefficients)
+            }
+        }
+        return newPolynomial
+    }
+
+    fun substituteArgumentAndCast(newArgument: BinaryPolynomial): BinaryPolynomial {
+        return substituteArgument(newArgument)
+            .interpretCoefficientsAsOneType()
+    }
+
+    fun interpretCoefficientsAsOneType(): BinaryPolynomial {
+        var newPolynomial = if (coefficients.isEmpty()) BinaryPolynomial.ZERO else coefficients[0]
+        for (i in 1 until coefficients.size) {
+            if (!coefficients[i].isZero()) {
+                val interpreted = BinaryPolynomial.X.pow(i)
+                newPolynomial += interpreted * coefficients[i]
             }
         }
         return newPolynomial

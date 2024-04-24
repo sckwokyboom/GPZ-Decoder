@@ -1,7 +1,6 @@
-package model
+package model.cyclotomicclasses
 
 class CyclotomicClassesFinder {
-    //    val cyclotomicClasses: List<CyclotomicClass> = ArrayList()
     companion object {
         fun findAllCyclotomicClasses(module: Int, p: Int): Map<Int, CyclotomicClass> {
             val leaderAndCyclotomicClass = HashMap<Int, CyclotomicClass>()
@@ -9,7 +8,7 @@ class CyclotomicClassesFinder {
                 if (leaderAndCyclotomicClass.containsKey(i)) {
                     continue
                 }
-                val representatives = ArrayList<Int>()
+                val representatives = HashSet<Int>()
                 var newRepresentative = i
                 while (!representatives.contains(newRepresentative)) {
                     representatives.add(newRepresentative)

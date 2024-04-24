@@ -1,31 +1,47 @@
+package model.field
+
+import polynomials.BinaryPolynomial
 import java.security.InvalidParameterException
 
-object GaloisField {
-    private val irreduciblePolynomial = BinaryPolynomial(intArrayOf(1, 0, 0, 0, 1, 0, 0, 0, 0, 1))
-    private val primitiveElement = BinaryPolynomial(intArrayOf(0, 1))
-    val fieldSize = 511
-        get() = field
+class GaloisFieldMod2(
+    private val irreduciblePolynomial: BinaryPolynomial,
+    private val primitiveElement: BinaryPolynomial,
+    val fieldSize: Int,
+) {
     val primitiveElementDegreeAndFieldElement = HashMap<Int, BinaryPolynomial>(fieldSize)
-        get() = field
-    val primitiveElementsAndInverses = HashMap<BinaryPolynomial, BinaryPolynomial>(fieldSize)
-        get() = field
+    private val primitiveElementsAndInverses = HashMap<BinaryPolynomial, BinaryPolynomial>(fieldSize)
 
     init {
-        for (i in 0 until fieldSize) {
-            primitiveElementDegreeAndFieldElement[i] = primitiveElement.pow(i) % irreduciblePolynomial
+        if (!irreduciblePolynomial.isIrreducible()) {
+            throw IllegalArgumentException("Многочлен $irreduciblePolynomial не является неприводимым над полем Галуа порядка 2.")
         }
+        fillPrimitiveElementDegreesAndFieldElementsTable()
+        fillInverseElementsTable()
+    }
+
+    private fun fillPrimitiveElementDegreesAndFieldElementsTable() {
+        for (i in 0 until fieldSize) {
+            val fieldElement = primitiveElement.pow(i) % irreduciblePolynomial
+            if (primitiveElementDegreeAndFieldElement.containsValue(fieldElement)) {
+                throw IllegalArgumentException("По указанному неприводимому многочлену $irreduciblePolynomial и примитивному элементу $primitiveElement невозможно построить поле Галуа размера ${fieldSize}. Некорректный размер или указанный элемент не является примитивным.")
+            }
+            primitiveElementDegreeAndFieldElement[i] = fieldElement
+        }
+    }
+
+    private fun fillInverseElementsTable() {
         for (i in 0 until fieldSize) {
             val element = primitiveElementDegreeAndFieldElement.getValue(i)
             if (primitiveElementsAndInverses.containsKey(element)) {
                 continue
             }
-//            if (primitiveElementsAndInverses.size == 2 * fieldSize) {
-//                break
-//            }
+            if (primitiveElementsAndInverses.size == fieldSize) {
+                break
+            }
             for (j in i until fieldSize) {
                 val candidate = primitiveElementDegreeAndFieldElement.getValue(j)
                 if (primitiveElementsAndInverses.containsKey(candidate)) {
-                    println("ПЛОХО!")
+                    println("ПЛОХО! ${candidate}")
                 }
                 if ((element * candidate).castToFieldElements(this).isOne()) {
                     primitiveElementsAndInverses[element] = candidate
@@ -37,8 +53,8 @@ object GaloisField {
                 println("Обратного для $element нет!")
             }
         }
-
     }
+
 
     override fun toString(): String {
         val builder = StringBuilder()
@@ -47,6 +63,15 @@ object GaloisField {
             builder.append("${entry.key} \t\t\t\t\t\t\t\t ${entry.value}\n")
         }
         return builder.toString()
+    }
+
+    fun findDegreeByFieldElement(fieldElement: BinaryPolynomial): Int {
+        for (entry in primitiveElementDegreeAndFieldElement) {
+            if (entry.value == fieldElement.castToFieldElements(this)) {
+                return entry.key
+            }
+        }
+        throw IllegalArgumentException("Элемента $fieldElement в поле нет.")
     }
 
     operator fun get(index: Int): BinaryPolynomial {
