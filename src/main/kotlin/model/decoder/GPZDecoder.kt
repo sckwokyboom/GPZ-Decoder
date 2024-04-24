@@ -39,6 +39,7 @@ class GPZDecoder(private val bchCode: BCHCode) : Decoder {
         solutions.addFirst(BinaryPolynomial(intArrayOf(1)))
         val polynomialLocator = MultiBinaryPolynomial(solutions)
         chienSearchErrorsIndices(polynomialLocator)
+
         val errorsIndices1 = bruteForceSearchErrorsIndices(polynomialLocator)
         val errorsIndices2 = chienSearchErrorsIndices(polynomialLocator)
         val errorsIndices3 = hornerSchemeSearchErrorsIndices(polynomialLocator)

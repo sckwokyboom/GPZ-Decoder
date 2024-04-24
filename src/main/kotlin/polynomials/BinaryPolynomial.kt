@@ -19,7 +19,6 @@ open class BinaryPolynomial {
 
     constructor(coefficients: BooleanArray) : this(coefficients.toList())
 
-    //    constructor(coefficients: List<Int>) : this(coefficients.map { it != 0 }.toList())
     constructor(coefficients: IntArray) : this(coefficients.map { it != 0 }.toList())
 
     constructor(vector: BinaryVector) : this(vector.toBooleanArray())
@@ -103,7 +102,6 @@ open class BinaryPolynomial {
         var dividend = BinaryPolynomial(this.coefficients)
         var quotient = BinaryPolynomial(emptyList())
 
-        // TODO: think about degree = 0
         while (dividend.degree >= other.degree) {
             val termCoefficients = MutableList(abs(dividend.degree - other.degree)) { false }
             termCoefficients.addLast(true)
@@ -206,7 +204,12 @@ open class BinaryPolynomial {
     }
 
     fun substituteArgument(newArgument: BinaryPolynomial): BinaryPolynomial {
-        var newPolynomial = BinaryPolynomial(booleanArrayOf(coefficients[0]))
+        var newPolynomial: BinaryPolynomial
+        if (coefficients.isEmpty()) {
+            newPolynomial = ZERO
+        } else {
+            newPolynomial = BinaryPolynomial(booleanArrayOf(coefficients[0]))
+        }
         for (i in 1 until coefficients.size) {
             if (coefficients[i]) {
                 // TODO: if there is bad performance, you can optimize it
